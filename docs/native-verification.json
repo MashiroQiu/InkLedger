@@ -1,0 +1,90 @@
+{
+  "nativeVersion": "0.1.14-native",
+  "unitTestsPassed": 10,
+  "androidUiChecksPassed": 35,
+  "androidUiChecks": [
+    "Room retained 15 migrated entries",
+    "Original JSON backup bytes preserved",
+    "Migrated home expense 909.00",
+    "Budget rectangle opens native budget page",
+    "Phone drawer opens",
+    "Recycle bin absent from sidebar",
+    "Plus opens native editor",
+    "Back dismisses editor",
+    "Dock opens settings",
+    "Recycle bin opens from settings",
+    "Functions restores home",
+    "Long press shows edit/delete/multi-select",
+    "Long press does not show details",
+    "Multi-selection toolbar appears",
+    "320px editor opens",
+    "320px editor fields fit screen",
+    "Tablet sidebar stays visible",
+    "Tablet budget shows category and trend",
+    "Native editor saves cents exactly",
+    "Saved new entry visible",
+    "Category icon opens quick classify",
+    "Context delete needs one click and no confirmation",
+    "Deletion recomputes summary",
+    "Deleted entry is retained in recycle bin",
+    "Permanent delete still asks confirmation",
+    "Restore removes recycled entry",
+    "Restore returns original cents",
+    "Swipe reveal delete responds to one tap",
+    "Confirmed permanent delete removes record",
+    "Cleaned test entry leaves baseline totals",
+    "True 3:2 physical tablet",
+    "Final tablet shows sidebar and home",
+    "Final tablet budget has two panels",
+    "Settings fills screen and hides sidebar",
+    "Functions restores previous budget page"
+  ],
+  "environment": "Android 12/API 31 official x86_64 emulator, software GPU, 60 Hz; no Huawei performance measurement",
+  "screenshots": {
+    "phone": "432 x 960 (20:9)",
+    "tablet": "1440 x 960 (3:2)"
+  },
+  "dataMigration": "15 synthetic WebView entries imported to Room; legacy JSON backup byte equality checked; save/restore/delete exact cents tested",
+  "limitations": [
+    "Huawei actual frame rate not measured",
+    "Native fonts and form widgets are not pixel-identical to WebView"
+  ],
+  "releaseSmokeChecks": {
+    "checks": [
+      "Optimized release retains migrated amount",
+      "Optimized release opens editor",
+      "Rotation keeps open editor",
+      "Editor closes with content restored",
+      "Optimized release settings hides drawer",
+      "Optimized release returns to budget"
+    ],
+    "passed": 6
+  },
+  "apkBytes": 1182622,
+  "apkSha256": "ce1da7118bcac2f215f7124979bb37e3b25023b342cc7fa07ab5985c8cdf3245",
+  "signerSha256": "6ad1606125da60a5e4adaeda7655e0391447673267dad21afe2103d8f4e20850",
+  "signatureMatchesWebview013": true,
+  "lint": {
+    "errors": 0,
+    "warnings": 11
+  },
+  "finalBuild": "assembleDebug, assembleRelease, testDebugUnitTest, lintDebug all passed",
+  "optimizedReleaseEntryChecks": {
+    "checks": [
+      "Native editor saves cents exactly",
+      "Saved new entry visible",
+      "Category icon opens quick classify",
+      "Context delete needs one click and no confirmation",
+      "Deletion recomputes summary",
+      "Deleted entry is retained in recycle bin",
+      "Permanent delete still asks confirmation",
+      "Restore removes recycled entry",
+      "Restore returns original cents",
+      "Swipe reveal delete responds to one tap",
+      "Confirmed permanent delete removes record",
+      "Cleaned test entry leaves baseline totals"
+    ],
+    "passed": 12
+  },
+  "currentSidebarOptionClosesDrawer": true
+}

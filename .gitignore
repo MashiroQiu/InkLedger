@@ -17,3 +17,5 @@ test-results/
 *.iml
 .DS_Store
 Thumbs.db
+build-native/
+.kotlin/
