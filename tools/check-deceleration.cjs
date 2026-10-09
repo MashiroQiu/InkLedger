@@ -1,0 +1,22 @@
+const {chromium}=require('playwright');const fs=require('fs'),path=require('path'),assert=require('assert');
+
+(async()=>{const b=await chromium.launch({executablePath:process.env.CHROME_PATH||undefined,headless:true});const p=await b.newPage({viewport:{width:1440,height:960}});await p.route('https://inkledger.local/**',r=>{const f=new URL(r.request().url()).pathname.slice(1)||'index.html';return r.fulfill({body:fs.readFileSync(path.resolve(__dirname,'../app/src/main/assets',f)),contentType:f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'text/html'})});await p.goto('https://inkledger.local/?demo=1');
+
+const check=async(kind)=>{const result=await p.evaluate(kind=>{const all=kind==='nav'?navigationMotion.animations:[sheetMotion.animation,sheetMotion.maskAnimation,...sheetMotion.extra||[]];const curves=all.map(a=>a.effect.getTiming().easing);const a=all[0];a.pause();const duration=a.effect.getTiming().duration,points=[];for(let i=0;i<=20;i++){a.currentTime=duration*i/20;points.push(a.effect.getComputedTiming().progress??1)}const speeds=points.slice(1).map((x,i)=>x-points[i]);all.forEach(a=>a.finish());return {curves,speeds};},kind);assert.ok(result.curves.every(x=>x==='cubic-bezier(0.16, 1, 0.3, 1)'));assert.ok(result.speeds.every((x,i)=>i===0||x<=result.speeds[i-1]+1e-5),`${kind} speed must only decrease`);assert.ok(result.speeds.at(-1)<.002);await p.waitForFunction(()=>navigationMotion===null&&sheetMotion===null);};
+
+for(const target of ['budget','stats','home']){await p.evaluate(x=>go(x),target);await check('nav')}
+
+await p.evaluate(()=>go('budget',$('.budget-card').getBoundingClientRect()));await check('nav');await p.evaluate(()=>go('settings'));await check('nav');await p.evaluate(()=>switchSettings(false));await check('nav');
+
+await p.locator('#dock .add').click();await check('sheet');await p.locator('.sheet [data-action=close]').click();await check('sheet');await p.waitForFunction(()=>!modalOpen);
+
+const continuity=await p.evaluate(()=>{editor(today(),null,$('#dock .add').getBoundingClientRect());[sheetMotion.animation,sheetMotion.maskAnimation,...sheetMotion.extra].forEach(a=>{a.pause();a.currentTime=100});const before=getComputedStyle($('.sheet')).transform;closeSheet(true);sheetMotion.animation.pause();sheetMotion.animation.currentTime=0;return {before,after:getComputedStyle($('.sheet')).transform,rate:sheetMotion.animation.playbackRate}});assert.equal(continuity.before,continuity.after);assert.equal(continuity.rate,1);await check('sheet');await p.waitForFunction(()=>!modalOpen);
+
+await p.evaluate(()=>moneySheet());const generic=await p.locator('.sheet').evaluate(e=>getComputedStyle(e).animationTimingFunction);assert.equal(generic,'cubic-bezier(0.16, 1, 0.3, 1)');await p.waitForTimeout(450);await p.locator('.sheet [data-action=close]').click();await check('sheet');
+
+const css=await p.evaluate(()=>{go('home');releaseEdge();return [getComputedStyle($('#sidebar')).transitionTimingFunction,getComputedStyle($('#toast')).transitionTimingFunction,getComputedStyle($('.swipe-target')).transitionTimingFunction,getComputedStyle($('#content')).transitionTimingFunction]});assert.ok(css.every(x=>x==='cubic-bezier(0.16, 1, 0.3, 1)'));
+
+await p.waitForFunction(()=>navigationMotion===null);const removed=await p.evaluate(()=>{const entry=db.entries.find(e=>e.book===db.book&&e.date.startsWith(range));removeEntries([entry.id],document.querySelector(`[data-swipe-id="${entry.id}"]`));return entry.id});await p.waitForFunction(id=>!document.querySelector(`[data-swipe-id="${id}"]`)&&db.trash.some(e=>e.id===id),removed);
+
+console.log('PASS: all navigation/editor/sheet/dock/indicator curves, 20-step monotonically decreasing speed, interrupted dismissal continuity and forward ease-out, drawer/swipe/toast/edge CSS curves');await b.close();})().catch(e=>{console.error(e);process.exit(1)});
+

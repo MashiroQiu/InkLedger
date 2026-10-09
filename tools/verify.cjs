@@ -1,0 +1,250 @@
+const {chromium}=require('playwright');
+
+const fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert');
+
+const assets=path.resolve(__dirname,'../app/src/main/assets'),out=path.resolve(__dirname,'../test-results');fs.mkdirSync(out,{recursive:true});
+
+const server=http.createServer((req,res)=>{res.end();});
+
+(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`https://inkledger.local/`;const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||undefined,headless:true});let errors=[];const context=await browser.newContext({viewport:{width:432,height:960},deviceScaleFactor:2,locale:'zh-CN',timezoneId:'Asia/Hong_Kong'});await context.route("https://inkledger.local/**",async route=>{const name=new URL(route.request().url()).pathname.slice(1)||"index.html";await route.fulfill({status:200,contentType:name.endsWith("css")?"text/css":name.endsWith("js")?"application/javascript":"text/html; charset=utf-8",body:fs.readFileSync(path.join(assets,name))});});const p=await context.newPage();p.on('pageerror',e=>errors.push(String(e)));await p.goto(base+'?demo=1');await p.waitForTimeout(350);
+
+await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,'01-phone-home.png')});
+
+await p.locator('#content [data-action=budget]').click();await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,'02-phone-budget.png')});
+
+await p.evaluate(()=>go('home'));await p.locator('#toolbar [data-action=menu]').click();await p.waitForTimeout(350);await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,'03-phone-menu.png')});await p.locator('#sidebar .side-close').click();
+
+const before=await p.evaluate(()=>db.entries.length);await p.locator('#dock .add').click();await p.locator('#entryMoney').fill('12.34');await p.locator('#entryNote').fill('自动验证：新增与持久化');await p.locator('#entryForm .primary').click();assert.equal(await p.evaluate(()=>db.entries.length),before+1);const newID=await p.evaluate(()=>db.entries.at(-1).id);assert.equal(await p.evaluate(()=>db.entries.at(-1).cents),1234);await p.reload();assert.equal(await p.evaluate(()=>db.entries.length),before+1);
+
+await p.locator(`[data-action=details][data-id="${newID}"]`).click();assert.equal(await p.locator('.sheet.details').evaluate(e=>Math.round(e.getBoundingClientRect().height)),480);await p.locator('#editEntry').click();await p.locator('#entryMoney').fill('15.67');await p.locator('#entryForm .primary').click();assert.equal(await p.evaluate(id=>db.entries.find(e=>e.id===id).cents,newID),1567);
+
+await p.locator(`[data-action=quick-cat][data-id="${newID}"]`).click();await p.locator('[data-action=apply-cat][data-cat=transport]').click();assert.equal(await p.evaluate(id=>db.entries.find(e=>e.id===id).cat,newID),'transport');
+
+await p.locator(`[data-action=details][data-id="${newID}"]`).click();await p.locator('.sheet [data-action=delete]').click();assert.equal(await p.locator('#confirmAction').count(),0);await p.waitForTimeout(1250);assert.equal(await p.evaluate(id=>db.trash.some(e=>e.id===id),newID),true);assert.equal(await p.evaluate(id=>db.entries.some(e=>e.id===id),newID),false);await p.evaluate(()=>go('trash'));await p.locator(`[data-action=restore][data-id="${newID}"]`).click();assert.equal(await p.evaluate(id=>db.entries.some(e=>e.id===id),newID),true);
+
+await p.evaluate(()=>go('budget'));await p.locator('[data-action=set-total]').click();await p.locator('#budgetMoney').fill('7000.01');await p.locator('#moneyForm .primary').click();assert.equal(await p.evaluate(()=>budget().total),700001);await p.locator('[data-action=set-category-budget][data-cat=food]').click();await p.locator('#budgetMoney').fill('2000.22');await p.locator('#moneyForm .primary').click();assert.equal(await p.evaluate(()=>budget().categories.food),200022);
+
+await p.locator('[data-action=budget-mode][data-mode=year]').click();assert.equal(await p.locator('.chart circle').count(),0);await p.locator('[data-action=budget-mode][data-mode=month]').click();assert.ok(await p.locator('.chart circle').count()>0);
+
+await p.evaluate(()=>go('settings'));await p.locator('#effect').selectOption('strong');assert.equal(await p.locator('body').getAttribute('data-effect'),'strong');await p.locator('#effect').selectOption('weak');assert.equal(await p.locator('body').getAttribute('data-effect'),'weak');
+
+assert.equal(await p.evaluate(()=>parseMoney('0.01')),1);assert.equal(await p.evaluate(()=>parseMoney('99999999.99')),9999999999);assert.equal(await p.evaluate(()=>{try{parseMoney('1.001');return false}catch{return true}}),true);
+
+await p.evaluate(()=>{db=demo();persist();go('home');$("#toast").classList.remove("show")});await p.setViewportSize({width:1440,height:960});await p.waitForTimeout(350);await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,'04-tablet-home.png')});const sidebar=await p.locator('#sidebar').boundingBox();assert.equal(sidebar.x,0);await p.locator('#content [data-action=budget]').click();await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,'05-tablet-budget.png')});await p.evaluate(()=>go('home'));const first=await p.locator('[data-action=details]').first();await first.click();const mask=await p.locator('.sheet-mask').boundingBox();assert.equal(mask.x,256);await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,'06-tablet-details.png')});await p.locator('.sheet [data-action=close]').first().click();const widths=await p.locator('#dock').boundingBox();await p.setViewportSize({width:432,height:960});await p.waitForTimeout(400);assert.equal((await p.locator('#dock').boundingBox()).width,widths.width);assert.ok((await p.locator('#sidebar').boundingBox()).x<0);
+
+// Single-click row and day deletion, without confirmation.
+
+await p.evaluate(()=>go('home'));const row=p.locator('[data-swipe-id]').first();const box=await row.boundingBox();await p.mouse.move(box.x+box.width-30,box.y+30);await p.mouse.down();await p.mouse.move(box.x+box.width-140,box.y+30,{steps:12});await p.mouse.up();await p.waitForTimeout(350);assert.ok(await row.evaluate(e=>e.classList.contains('swiped')));assert.equal(await row.locator('..').locator('.delete-reveal').evaluate(e=>getComputedStyle(e).visibility),'visible');const swipeID=await row.getAttribute('data-swipe-id');await row.locator('..').locator('.delete-reveal').click();assert.equal(await p.locator('#confirmAction').count(),0);assert.equal(await p.evaluate(id=>db.trash.filter(e=>e.id===id).length,swipeID),1);await p.waitForTimeout(1250);
+
+await p.evaluate(()=>render());const dayHead=p.locator('.day-head').first();const dayBox=await dayHead.boundingBox();const dayDate=await dayHead.getAttribute('data-date');const dayCount=await p.evaluate(date=>db.entries.filter(e=>e.date===date&&e.book===db.book).length,dayDate);const trashDayBefore=await p.evaluate(date=>db.trash.filter(e=>e.date===date&&e.book===db.book).length,dayDate);await p.mouse.move(dayBox.x+dayBox.width-40,dayBox.y+25);await p.mouse.down();await p.mouse.move(dayBox.x+dayBox.width-150,dayBox.y+25,{steps:12});await p.mouse.up();await p.waitForTimeout(350);await p.locator(`[data-action=delete-day][data-date="${dayDate}"]`).click();assert.equal(await p.locator('#confirmAction').count(),0);await p.waitForTimeout(1250);assert.equal(await p.evaluate(date=>db.entries.filter(e=>e.date===date&&e.book===db.book).length,dayDate),0);assert.equal(await p.evaluate(date=>db.trash.filter(e=>e.date===date&&e.book===db.book).length,dayDate),dayCount+trashDayBefore);
+
+await p.evaluate(()=>{db=demo();persist();go('budget');$('#toast').classList.remove('show');$('#scroll').scrollTop=340});await p.waitForTimeout(250);await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,'07-phone-budget-trend.png')});await p.evaluate(()=>go('home'));await p.locator('#scroll').evaluate(e=>e.scrollTop=300);await p.waitForFunction(()=>document.querySelector('#main').style.getPropertyValue('--fade-end')==='145px');assert.equal(await p.locator('#main').evaluate(e=>e.style.getPropertyValue('--fade-end')),'145px');
+
+// Reject malformed backups and keep exact cents when exporting.
+
+assert.equal(await p.evaluate(()=>{try{validateDB({version:1});return false}catch{return true}}),true);assert.equal(await p.evaluate(()=>{const d=demo();d.budgets[Object.keys(d.budgets)[0]].categories['bad\"attribute']=1;try{validateDB(d);return false}catch{return true}}),true);
+
+assert.equal(await p.evaluate(()=>validateDB(JSON.parse(JSON.stringify(db))).entries.length),await p.evaluate(()=>db.entries.length));
+
+// Position, order, persistence, old-backup compatibility and responsive restoration.
+
+await p.setViewportSize({width:1440,height:960});await p.waitForTimeout(400);
+
+await p.evaluate(()=>go('settings'));await p.waitForFunction(()=>navigationMotion===null);
+
+const dockWidth=(await p.locator('#dock').boundingBox()).width;
+
+for(const [position,order,file] of [['center',['functions','add','settings'],'09-dock-center.png'],['left',['add','functions','settings'],'10-dock-left.png'],['right',['functions','settings','add'],'11-dock-right.png']]){
+
+ await p.locator('#tabletDockPosition').selectOption(position);
+
+ assert.deepEqual(await p.locator('#dock button').evaluateAll(es=>es.map(e=>e.dataset.action)),order);
+
+ const dockBox=await p.locator('#dock').boundingBox(),mainBox=await p.locator('#displayArea').boundingBox();
+
+ assert.equal(dockBox.width,dockWidth);
+
+ if(position==='center')assert.ok(Math.abs(dockBox.x+dockBox.width/2-mainBox.x-mainBox.width/2)<1);
+
+ if(position==='left')assert.ok(Math.abs(dockBox.x-mainBox.x-20)<1);
+
+ if(position==='right')assert.ok(Math.abs(mainBox.x+mainBox.width-dockBox.x-dockBox.width-20)<1);
+
+ await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,file),clip:{x:mainBox.x,y:810,width:mainBox.width,height:150}});
+
+}
+
+await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,'12-tablet-dock-settings.png')});
+
+await p.reload();assert.equal(await p.locator('#dock').getAttribute('data-position'),'right');
+
+await p.evaluate(()=>go('budget'));assert.equal(await p.locator('#dock').getAttribute('data-position'),'right');
+
+await p.setViewportSize({width:432,height:960});await p.waitForTimeout(400);
+
+assert.equal(await p.locator('#dock').getAttribute('data-position'),'center');assert.deepEqual(await p.locator('#dock button').evaluateAll(es=>es.map(e=>e.dataset.action)),['functions','add','settings']);
+
+await p.setViewportSize({width:1440,height:960});await p.waitForTimeout(400);assert.equal(await p.locator('#dock').getAttribute('data-position'),'right');
+
+await p.locator('#toolbar [data-action=menu]').click();await p.waitForTimeout(400);const hiddenMain=await p.locator('#displayArea').boundingBox(),rightDock=await p.locator('#dock').boundingBox();assert.ok(Math.abs(hiddenMain.x+hiddenMain.width-rightDock.x-rightDock.width-20)<1);
+
+assert.equal(await p.evaluate(()=>{const old=demo();delete old.settings.tabletDockPosition;return validateDB(old).settings.tabletDockPosition}),'center');
+
+assert.equal(await p.evaluate(()=>{const invalid=demo();invalid.settings.tabletDockPosition='invalid';try{validateDB(invalid);return false}catch{return true}}),true);
+
+// Long press must not consume the next action; permanent deletion stays confirmed.
+
+await p.evaluate(()=>{db=demo();persist();cancelPageTransition();document.body.classList.remove('sidebar-hidden','drawer-open');page='home';render()});
+
+await p.waitForFunction(()=>navigationMotion===null);
+
+const held=p.locator('[data-action=details]').first(),heldID=await held.getAttribute('data-id'),heldBox=await held.boundingBox();
+
+await p.mouse.move(heldBox.x+20,heldBox.y+20);await p.mouse.down();await p.waitForTimeout(610);assert.equal(await p.locator('.entry-menu').count(),1);assert.equal(await p.locator('.sheet.details').count(),0);await p.mouse.up();
+
+// Model WebView omitting the click following a completed long press.
+
+await p.evaluate(()=>{suppressClick=true;ignoredClickTarget=document.querySelector('[data-swipe-id]')});
+
+await p.locator('.entry-menu [data-action=context-delete]').click();
+
+assert.equal(await p.locator('#confirmAction').count(),0);assert.equal(await p.evaluate(id=>db.trash.filter(e=>e.id===id).length,heldID),1);await p.waitForTimeout(1250);
+
+await p.evaluate(()=>go('trash'));await p.locator(`[data-action=purge][data-id="${heldID}"]`).click();assert.equal(await p.locator('#confirmAction').count(),1);assert.equal(await p.evaluate(id=>db.trash.some(e=>e.id===id),heldID),true);await p.locator('#confirmAction').click();assert.equal(await p.evaluate(id=>db.trash.some(e=>e.id===id),heldID),false);
+
+// Read actual keyframes and sample the accelerated, directional navigation.
+
+await p.evaluate(()=>{cancelPageTransition();page='home';render()});
+
+await p.locator('#sidebar [data-page=budget]').click();
+
+const near=await p.evaluate(()=>({direction:navigationMotion.direction,duration:navigationMotion.duration,distance:navigationMotion.distance,frames:navigationMotion.animations[1].effect.getKeyframes()}));
+
+assert.equal(near.direction,1);assert.equal(near.frames[0].filter,'blur(10px)');assert.equal(near.frames.at(-1).opacity,1);
+
+await p.waitForFunction(()=>navigationMotion===null);
+
+await p.locator('#sidebar [data-page=home]').click();assert.equal(await p.evaluate(()=>navigationMotion.direction),-1);await p.waitForFunction(()=>navigationMotion===null);
+
+await p.locator('#sidebar [data-page=stats]').click();const far=await p.evaluate(()=>({duration:navigationMotion.duration,distance:navigationMotion.distance}));assert.ok(far.distance>=near.distance*2);assert.ok(far.distance/far.duration>near.distance/near.duration);await p.waitForFunction(()=>navigationMotion===null);
+
+await p.evaluate(()=>{go('budget');go('settings');go('home')});await p.waitForFunction(()=>navigationMotion===null);assert.equal(await p.locator('.page-outgoing').count(),0);assert.equal(await p.evaluate(()=>page),'home');
+
+await p.emulateMedia({reducedMotion:'reduce'});await p.locator('#sidebar [data-page=budget]').click();assert.equal(await p.evaluate(()=>navigationMotion),null);await p.emulateMedia({reducedMotion:'no-preference'});
+
+for(const target of ['home','search','categories','trash','settings']){await p.evaluate(p=>go(p),target);await p.waitForFunction(()=>navigationMotion===null);const text=await p.locator('#main').innerText();assert.ok(!/生活流水|找回生活里的某一笔|把生活，分门别类|给记录一次重来的机会|记录，按自己的方式|生活的注脚|为未来多一点从容/.test(text));}
+
+// A home budget-card click reveals from its rectangle; menu navigation stays vertical.
+
+await p.evaluate(()=>{db=demo();persist();document.body.classList.remove('sidebar-hidden');go('home')});await p.waitForFunction(()=>navigationMotion===null);
+
+const sourceBudget=await p.locator('#content [data-action=budget]').boundingBox();await p.locator('#content [data-action=budget]').click();
+
+const budgetReveal=await p.evaluate(()=>({type:navigationMotion.type,origin:navigationMotion.origin.toJSON(),frames:navigationMotion.animations[0].effect.getKeyframes(),easing:navigationMotion.animations[0].effect.getTiming().easing}));
+
+assert.equal(budgetReveal.type,'expand-budget');assert.ok(Math.abs(budgetReveal.origin.left-sourceBudget.x)<1);assert.ok(budgetReveal.frames[0].clipPath.includes('18px'));assert.equal(budgetReveal.easing,'cubic-bezier(0.16, 1, 0.3, 1)');assert.equal(budgetReveal.frames[0].filter,'blur(12px)');assert.equal(budgetReveal.frames.at(-1).filter,'blur(0px)');assert.equal(await p.locator('.page-outgoing').count(),0);await p.waitForFunction(()=>navigationMotion===null);assert.equal(await p.locator('.surface-snapshot').count(),0);
+
+// The plus button morphs from its exact circle, including tablet left/right positions.
+
+for(const pos of ['left','center','right']){
+
+ await p.evaluate(pos=>{db.settings.tabletDockPosition=pos;persist();renderDock()},pos);
+
+ const plus=await p.locator('#dock .add').boundingBox();await p.locator('#dock .add').click();
+
+ const circle=await p.evaluate(()=>({origin:sheetMotion.origin.toJSON(),frames:sheetMotion.animation.effect.getKeyframes(),easing:sheetMotion.animation.effect.getTiming().easing}));assert.ok(Math.abs(circle.origin.left-plus.x)<1);assert.equal(circle.origin.width,54);assert.ok(circle.frames[0].transform.includes('scale'));assert.equal(await p.locator('.sheet.origin-expand').count(),1);await p.waitForFunction(()=>sheetMotion===null);await p.locator('.sheet [data-action=close]').click();
+
+}
+
+await p.evaluate(()=>{db.settings.tabletDockPosition='center';persist();go('home')});await p.waitForFunction(()=>navigationMotion===null);
+
+const expenseIDs=await p.evaluate(()=>{const first=db.entries.find(e=>e.type==='expense');return [first.id,db.entries.find(e=>e.type==='expense'&&e.date!==first.date).id]});
+
+// Edit opens the existing record from the press-position menu.
+
+await p.locator(`[data-action=details][data-id="${expenseIDs[0]}"]`).click({button:'right'});assert.equal(await p.locator('.entry-menu').count(),1);await p.locator('[data-action=context-edit]').click();assert.equal(await p.locator('#entryMoney').inputValue(),'38.50');await p.locator('.sheet [data-action=close]').click();
+
+await p.locator(`[data-action=details][data-id="${expenseIDs[0]}"]`).click({button:'right'});await p.locator('[data-action=context-select]').click();assert.equal(await p.evaluate(()=>selectedIds.size),1);await p.locator(`[data-action=toggle-selection][data-id="${expenseIDs[1]}"]`).last().click();assert.equal(await p.evaluate(()=>selectedIds.size),2);assert.equal(await p.locator('#scroll .entry.is-selected').count(),2);
+
+await p.waitForFunction(()=>navigationMotion===null);await p.screenshot({path:path.join(out,'13-tablet-multiselect.png')});
+
+await p.locator('[data-action=batch-category]').click();await p.locator('[data-action=apply-batch-category][data-cat=fun]').click();assert.equal(await p.evaluate(ids=>db.entries.filter(e=>ids.includes(e.id)).every(e=>e.cat==='fun'),expenseIDs),true);assert.equal(await p.evaluate(()=>selectionActive),false);
+
+// Delete exactly the chosen cross-day rows without confirmation; restore remains available.
+
+await p.locator(`[data-action=details][data-id="${expenseIDs[0]}"]`).click({button:'right'});await p.locator('[data-action=context-select]').click();await p.locator(`[data-action=toggle-selection][data-id="${expenseIDs[1]}"]`).last().click();await p.locator('[data-action=batch-delete]').click();assert.equal(await p.locator('#confirmAction').count(),0);assert.equal(await p.evaluate(ids=>db.entries.some(e=>ids.includes(e.id)),expenseIDs),false);assert.equal(await p.evaluate(ids=>db.trash.filter(e=>ids.includes(e.id)).length,expenseIDs),2);await p.waitForTimeout(1250);assert.equal(await p.evaluate(()=>selectionActive),false);
+
+await p.evaluate(()=>go('trash'));await p.waitForFunction(()=>navigationMotion===null);for(const id of expenseIDs)await p.locator(`[data-action=restore][data-id="${id}"]`).click();
+
+await p.evaluate(()=>go('home'));await p.waitForFunction(()=>navigationMotion===null);await p.locator(`[data-action=details][data-id="${expenseIDs[0]}"]`).click({button:'right'});const menuBox=await p.locator('.entry-menu').boundingBox(),mainMenu=await p.locator('#displayArea').boundingBox();assert.ok(menuBox.x>=mainMenu.x&&menuBox.x+menuBox.width<=mainMenu.x+mainMenu.width);await p.screenshot({path:path.join(out,'14-tablet-entry-menu.png')});await p.locator('[data-action=context-select]').click();await p.locator('[data-action=select-all]').click();assert.equal(await p.evaluate(()=>selectedIds.size),await p.evaluate(()=>visibleEntries().length));await p.locator('[data-action=select-all]').click();assert.equal(await p.evaluate(()=>selectedIds.size),0);await p.keyboard.press('Escape');assert.equal(await p.evaluate(()=>selectionActive),false);
+
+// Search select-all only targets matching results, and navigation exits selection.
+
+await p.evaluate(()=>go('search'));await p.waitForFunction(()=>navigationMotion===null);await p.locator('#searchInput').fill('地铁');await p.locator('[data-action=details]').first().click({button:'right'});await p.locator('[data-action=context-select]').click();await p.locator('[data-action=select-all]').click();assert.equal(await p.evaluate(()=>selectedIds.size),0);await p.locator('[data-action=select-all]').click();assert.equal(await p.evaluate(()=>selectedIds.size),1);await p.locator('#sidebar [data-page=home]').click();await p.waitForFunction(()=>navigationMotion===null);assert.equal(await p.evaluate(()=>selectionActive),false);
+
+await p.emulateMedia({reducedMotion:'reduce'});await p.locator('#content [data-action=budget]').click();assert.equal(await p.evaluate(()=>navigationMotion),null);await p.locator('#dock .add').click();assert.equal(await p.evaluate(()=>sheetMotion),null);await p.locator('.sheet [data-action=close]').click();await p.emulateMedia({reducedMotion:'no-preference'});
+
+
+
+// Settings occupies the entire tablet; the functions button restores the exact budget state.
+
+await p.setViewportSize({width:1440,height:960});await p.evaluate(()=>{db=demo();persist();go('budget')});await p.waitForFunction(()=>navigationMotion===null);
+
+await p.locator('[data-action=budget-mode][data-mode=year]').click();await p.locator('[data-action=shift][data-dir="-1"]').click();const remembered=await p.evaluate(()=>({page,budgetMode,budgetRange}));
+
+assert.equal(await p.locator('#sidebar [data-page=settings]').count(),0);
+
+await p.locator('#dock [data-action=settings]').click();assert.equal(await p.evaluate(()=>navigationMotion.type),'settings');assert.ok((await p.evaluate(()=>navigationMotion.animations[1].effect.getKeyframes()[0].transform)).includes('translateX'));
+
+await p.waitForFunction(()=>navigationMotion===null);assert.equal((await p.locator('#displayArea').boundingBox()).x,0);assert.ok((await p.locator('#sidebar').boundingBox()).x<0);await p.screenshot({path:path.join(out,'12-tablet-settings.png')});
+
+await p.locator('#dock [data-action=functions]').click();await p.waitForFunction(()=>navigationMotion===null);assert.deepEqual(await p.evaluate(()=>({page,budgetMode,budgetRange})),remembered);assert.equal((await p.locator('#displayArea').boundingBox()).x,256);
+
+// Selected pill moves beneath the plus; day typography and blank budgets.
+
+assert.equal(await p.locator('#dock .moving-highlight').count(),1);assert.ok(await p.evaluate(()=>Number(getComputedStyle($('#dock .add')).zIndex)>Number(getComputedStyle($('#dock .moving-highlight')).zIndex)));
+
+const bar=await p.locator('#dock').boundingBox(),plusRect=await p.locator('#dock .add').boundingBox();assert.ok(plusRect.y<bar.y);assert.equal(plusRect.width,54);
+
+await p.evaluate(()=>{db.budgets={};persist();go('home')});await p.waitForFunction(()=>navigationMotion===null);
+
+const budgetPlaceholder=await p.evaluate(()=>'-'.repeat(String(Math.floor(sum(selectedEntries(db.settings.budgetMode,range),'expense')/100)).length)+'.--');assert.equal(await p.locator('.budget-card .metrics span').nth(1).locator('b').innerText(),budgetPlaceholder);assert.equal(await p.locator('.budget-card .metrics span').nth(2).locator('b').innerText(),budgetPlaceholder);
+
+assert.ok(await p.evaluate(()=>parseFloat(getComputedStyle($('.day-date')).fontSize)>parseFloat(getComputedStyle($('.day-week')).fontSize)&&parseFloat(getComputedStyle($('.day-week')).fontSize)>parseFloat(getComputedStyle($('.day-relative')).fontSize)));assert.ok((await p.locator('.day-head').first().boundingBox()).height<=38);
+
+await p.locator('#content [data-action=budget]').click();await p.waitForFunction(()=>navigationMotion===null);assert.equal(await p.locator('.chart').count(),0);assert.ok((await p.locator('#content').innerText()).includes('暂未设置合计预算'));assert.ok((await p.locator('#content').innerText()).includes('暂未设置分类预算'));assert.ok(!(await p.locator('#content').innerText()).includes('基于已记录账单'));
+
+await p.locator('[data-action=set-total]').click();const start=await p.evaluate(()=>{const panel=$('.sheet'),a=panel.getAnimations()[0];a.pause();a.currentTime=0;return {top:panel.getBoundingClientRect().top,bottom:$('#main').getBoundingClientRect().bottom,easing:getComputedStyle(panel).animationTimingFunction}});assert.ok(Math.abs(start.top-start.bottom)<1);assert.equal(start.easing,'cubic-bezier(0.16, 1, 0.3, 1)');await p.evaluate(()=>$('.sheet').getAnimations()[0].finish());await p.locator('.sheet [data-action=close]').click();
+
+await p.screenshot({path:path.join(out,'17-tablet-budget-empty.png')});
+
+
+
+
+
+// Preserve the actual continuous Gaussian radius and reuse the outgoing DOM.
+
+await p.evaluate(()=>{go('home')});await p.waitForFunction(()=>navigationMotion===null);
+
+const reused=await p.evaluate(()=>{window.originalDay=document.querySelector('#content .day-card');window.originalDock=document.querySelector('#dock [data-action=functions]');window.originalSidebar=document.querySelector('#sidebar [data-page=home]');go('stats');return {day:document.querySelector('.page-outgoing .day-card')===window.originalDay,dock:document.querySelector('#dock [data-action=functions]')===window.originalDock,sidebar:document.querySelector('#sidebar [data-page=home]')===window.originalSidebar};});assert.deepEqual(reused,{day:true,dock:true,sidebar:true});
+
+await p.waitForFunction(()=>navigationMotion===null);
+
+await p.evaluate(()=>{go('budget');go('settings');switchSettings(false)});
+
+assert.ok(await p.evaluate(()=>navigationMotion.animations.slice(0,2).every(a=>a.effect.getKeyframes().some(f=>f.filter?.startsWith('blur(')))));
+
+assert.equal(await p.locator('.motion-blur-copy').count(),0);
+
+assert.equal(await p.locator('#sidebar').evaluate(e=>getComputedStyle(e).transitionProperty),'transform');
+
+const middleBlur=await p.evaluate(()=>{const a=navigationMotion.animations[1];a.pause();a.currentTime=navigationMotion.duration*.2;const blur=getComputedStyle(document.querySelector('#pageSurface')).filter;a.play();return blur;});assert.ok(/blur\([\d.]+px\)/.test(middleBlur));assert.notEqual(middleBlur,'blur(0px)');assert.notEqual(middleBlur,'blur(12px)');
+
+await p.waitForFunction(()=>navigationMotion===null);await p.waitForTimeout(20);assert.equal(await p.locator('.page-outgoing,.surface-snapshot').count(),0);
+
+assert.equal(await p.locator('#pageSurface').evaluate(e=>e.style.willChange),'');
+
+assert.deepEqual(await p.evaluate(async()=>{let calls=0;window.AndroidStore={requestMotionRate(){calls++}};lastMotionBoost=-Infinity;boostMotionRate();boostMotionRate();const immediate=calls;await new Promise(r=>setTimeout(r,300));boostMotionRate();delete window.AndroidStore;return [immediate,calls];}),[1,2]);
+
+const report={status:'PASS',checks:['新增账单与分单位精度','重载持久化','编辑金额','快速修改分类','删除移入回收站与恢复','合计和分类预算独立保存','月度点线与年度折线','三档视效切换','金额输入校验','手机平板自动布局','平板详情遮罩避开侧栏','固定底栏宽度','备份结构校验','单笔左滑单击移入回收站，无确认','整日单击移入回收站，无确认与粒子完成','滚动后背景过渡','平板底栏三档位置与按钮顺序','底栏位置保存与重启恢复','手机居中与平板偏好恢复','侧栏收起后底栏定位','旧备份兼容与无效位置拒绝','长按菜单单击删除与永久删除确认','菜单方向、跨项距离与速度','快速连续导航清理','减少动态效果模式','移除文学性界面文案','预算卡片矩形展开','三档位置记账圆形展开','长按位置菜单与编辑','跨日多选与批量分类','多选删除与回收站恢复','全选取消与搜索筛选范围','展开动画减少动态效果兼容','预算展开模糊与减速曲线','设置横向全屏与功能页原状态恢复','移除侧栏设置入口','选中框移动与加号层级及突出','预算空状态与位数占位','日期行高度与字号层级','二级弹层从底边外进入','真正连续高斯模糊，中途半径采样','旧页DOM与导航控件复用、连续导航清理','高刷新率桥接请求节流','设置返回不叠加侧栏宽度动画'],browser:await browser.version(),screenshots:'Chrome 运行本地界面截图；不是 Android 模拟器截图',viewport:{phone:'432×960 (20:9)',tablet:'1440×960 (3:2)'},errors};assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'verification.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));await browser.close();server.close();})().catch(e=>{console.error(e);process.exit(1)});
+

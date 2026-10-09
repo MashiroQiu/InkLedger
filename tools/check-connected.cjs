@@ -1,0 +1,26 @@
+const {chromium}=require('playwright');const fs=require('fs'),path=require('path'),assert=require('assert');
+
+(async()=>{const b=await chromium.launch({executablePath:process.env.CHROME_PATH||undefined,headless:true});const p=await b.newPage({viewport:{width:1440,height:960},deviceScaleFactor:2});await p.route('https://inkledger.local/**',r=>{const f=new URL(r.request().url()).pathname.slice(1)||'index.html';return r.fulfill({body:fs.readFileSync(path.resolve(__dirname,'../app/src/main/assets',f)),contentType:f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'text/html'})});await p.goto('https://inkledger.local/?demo=1');
+
+assert.equal(await p.locator('#sidebar [data-page=trash]').count(),0);
+
+for(const target of ['budget','home','stats','categories','home']){
+
+ await p.locator(`#sidebar [data-page=${target}]`).click();const info=await p.evaluate(()=>{const a=document.querySelector('#sidebar .moving-highlight').getAnimations()[0],pageAnimation=navigationMotion.animations[1];return {marker:a.effect.getTiming(),page:pageAnimation.effect.getTiming()};});assert.equal(info.marker.duration,info.page.duration);assert.equal(info.marker.easing,info.page.easing);
+
+ for(const fraction of [.15,.5,.8]){const remaining=await p.evaluate(fraction=>{const a=document.querySelector('#sidebar .moving-highlight').getAnimations()[0],incoming=navigationMotion.animations[1];a.pause();incoming.pause();a.currentTime=navigationMotion.duration*fraction;incoming.currentTime=navigationMotion.duration*fraction;const initial=new DOMMatrix(a.effect.getKeyframes()[0].transform).m42,actual=new DOMMatrix(getComputedStyle(a.effect.target).transform).m42,dy=new DOMMatrix(getComputedStyle(document.querySelector('#scroll')).transform).m42;return {marker:actual/initial,page:dy/(navigationMotion.direction*navigationMotion.distance)};},fraction);assert.ok(Math.abs(remaining.marker-remaining.page)<.01);}
+
+ await p.evaluate(()=>navigationMotion.animations.forEach(a=>a.finish()));await p.waitForFunction(()=>navigationMotion===null);
+
+}
+
+await p.locator('#dock [data-action=settings]').click();assert.equal(await p.locator('.sidebar-motion').count(),1);await p.evaluate(()=>navigationMotion.animations.forEach(a=>a.pause()));const rects=[];for(const fraction of [0,.5,1])rects.push(await p.evaluate(fraction=>{navigationMotion.animations.forEach(a=>a.currentTime=navigationMotion.duration*fraction);return {side:document.querySelector('.sidebar-motion').getBoundingClientRect().right,main:document.querySelector('#main').getBoundingClientRect().width};},fraction));assert.ok(rects[0].side>rects[1].side&&rects[1].side>rects[2].side);assert.equal(rects[0].main,rects[1].main);await p.evaluate(()=>navigationMotion.animations.forEach(a=>a.finish()));await p.waitForFunction(()=>navigationMotion===null);assert.equal(await p.locator('.sidebar-motion').count(),0);
+
+await p.locator('#content [data-action=trash]').click();await p.waitForFunction(()=>navigationMotion===null);assert.equal(await p.evaluate(()=>isSettingsPage()),true);assert.equal((await p.locator('#displayArea').boundingBox()).x,0);assert.equal(await p.locator('#dock [data-action=settings]').getAttribute('class'),'selected');await p.locator('#toolbar [data-action=settings]').click();await p.waitForFunction(()=>navigationMotion===null);assert.equal(await p.evaluate(()=>page),'settings');await p.locator('#dock [data-action=functions]').click();assert.ok(await p.evaluate(()=>!!navigationMotion.sidebarMotion));await p.waitForFunction(()=>navigationMotion===null);assert.equal((await p.locator('#displayArea').boundingBox()).x,256);
+
+await p.locator('#dock .add').click();assert.equal(await p.locator('.plus-morph').count(),1);const opening=await p.evaluate(()=>({color:sheetMotion.extra.find(a=>a.effect.getKeyframes()[0].backgroundColor!==undefined).effect.getKeyframes()[0].backgroundColor,end:sheetMotion.extra.find(a=>a.effect.getKeyframes()[0].backgroundColor!==undefined).effect.getKeyframes().at(-1).backgroundColor,extra:sheetMotion.extra.length}));assert.equal(opening.color,'rgb(136, 136, 136)');assert.equal(opening.end,'rgb(247, 247, 247)');assert.ok(opening.extra>=3);await p.waitForFunction(()=>sheetMotion===null);assert.equal(await p.locator('.plus-morph').count(),0);await p.locator('.sheet [data-action=close]').click();assert.equal(await p.locator('.plus-morph').count(),1);await p.waitForFunction(()=>!modalOpen);assert.equal(await p.locator('.plus-morph').count(),0);
+
+await p.evaluate(()=>{go('settings');switchSettings(false);go('settings');switchSettings(false)});await p.waitForFunction(()=>navigationMotion===null);assert.equal(await p.locator('.sidebar-motion').count(),0);await p.emulateMedia({reducedMotion:'reduce'});await p.locator('#dock [data-action=settings]').click();assert.equal(await p.evaluate(()=>navigationMotion),null);assert.equal(await p.locator('.sidebar-motion').count(),0);
+
+console.log('PASS: synchronized marker displacement/timing, sidebar collapse/restore without per-frame resize, settings-only trash navigation, plus glyph/color lifecycle, interruption cleanup and reduced motion');await b.close();})().catch(e=>{console.error(e);process.exit(1)});
+
