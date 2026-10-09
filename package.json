@@ -1,6 +1,6 @@
 {
   "name": "inkledger-ui-verification",
-  "version": "0.1.13",
+  "version": "0.1.15-webview",
   "private": true,
   "scripts": {
     "test": "node tools/verify.cjs"
