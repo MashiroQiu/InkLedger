@@ -9,7 +9,7 @@ New-Item -ItemType Directory -Force -Path $BuildDir,"$BuildDir\classes","$BuildD
 $manifestText=[System.IO.File]::ReadAllText("$PSScriptRoot\app\src\main\AndroidManifest.xml").Replace('<manifest xmlns:', '<manifest package="cn.inkledger.app" xmlns:')
 [System.IO.File]::WriteAllText("$BuildDir\AndroidManifest.xml",$manifestText,[System.Text.UTF8Encoding]::new($false))
 Run "$tools\aapt2.exe" @('compile','--dir',"$PSScriptRoot\app\src\main\res",'-o',"$BuildDir\resources.zip")
-Run "$tools\aapt2.exe" @('link','-o',"$BuildDir\unsigned.apk",'--version-code','21','--version-name','0.1.20-webview','--manifest',"$BuildDir\AndroidManifest.xml",'-A',"$PSScriptRoot\app\src\main\assets",'-I',$platform,"$BuildDir\resources.zip")
+Run "$tools\aapt2.exe" @('link','-o',"$BuildDir\unsigned.apk",'--version-code','22','--version-name','0.1.21-webview','--manifest',"$BuildDir\AndroidManifest.xml",'-A',"$PSScriptRoot\app\src\main\assets",'-I',$platform,"$BuildDir\resources.zip")
 Run "$JdkPath\bin\javac.exe" @('-encoding','UTF-8','-source','8','-target','8','-classpath',$platform,'-d',"$BuildDir\classes","$PSScriptRoot\app\src\main\java\cn\inkledger\app\MainActivity.java")
 Run "$JdkPath\bin\jar.exe" @('--create','--file',"$BuildDir\classes.jar",'-C',"$BuildDir\classes",'.')
 Run "$tools\d8.bat" @('--min-api','26','--lib',$platform,'--output',"$BuildDir\dex","$BuildDir\classes.jar")
@@ -18,6 +18,6 @@ $zip=[System.IO.Compression.ZipFile]::Open("$BuildDir\unsigned.apk",[System.IO.C
 try{[System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,"$BuildDir\dex\classes.dex",'classes.dex') | Out-Null}finally{$zip.Dispose()}
 Run "$tools\zipalign.exe" @('-f','4',"$BuildDir\unsigned.apk","$BuildDir\aligned.apk")
 if(!(Test-Path -LiteralPath "$BuildDir\debug.jks")){Run "$JdkPath\bin\keytool.exe" @('-genkeypair','-keystore',"$BuildDir\debug.jks",'-alias','androiddebugkey','-storepass','android','-keypass','android','-keyalg','RSA','-keysize','2048','-validity','10000','-dname','CN=InkLedger Debug,O=Development,C=CN')}
-Run "$tools\apksigner.bat" @('sign','--ks',"$BuildDir\debug.jks",'--ks-key-alias','androiddebugkey','--ks-pass','pass:android','--key-pass','pass:android','--out',"$BuildDir\墨账-0.1.20-webview-debug.apk","$BuildDir\aligned.apk")
-Run "$tools\apksigner.bat" @('verify','--verbose',"$BuildDir\墨账-0.1.20-webview-debug.apk")
-Write-Output "APK: $BuildDir\墨账-0.1.20-webview-debug.apk"
+Run "$tools\apksigner.bat" @('sign','--ks',"$BuildDir\debug.jks",'--ks-key-alias','androiddebugkey','--ks-pass','pass:android','--key-pass','pass:android','--out',"$BuildDir\墨账-0.1.21-webview-debug.apk","$BuildDir\aligned.apk")
+Run "$tools\apksigner.bat" @('verify','--verbose',"$BuildDir\墨账-0.1.21-webview-debug.apk")
+Write-Output "APK: $BuildDir\墨账-0.1.21-webview-debug.apk"

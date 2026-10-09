@@ -10,7 +10,7 @@ const fs=require('fs'),path=require('path'),assert=require('assert');
  const row=await p.locator('[data-swipe-id]').first().boundingBox();
  await swipe(row.x+100,row.y+30,120);
  assert.equal(await p.evaluate(()=>document.body.classList.contains('drawer-open')),true);
- assert.equal(Math.round((await p.locator('#sidebar').boundingBox()).width),240);
+ assert.ok(Math.abs((await p.locator('#sidebar').boundingBox()).width-p.viewportSize().width*.4)<.1);
  assert.equal(await p.locator('.sheet').count(),0,'swipe must not open bill detail');
  await p.locator('#drawerMask').click({position:{x:420,y:500}});await p.waitForTimeout(350);
  await swipe(row.x+180,row.y+30,-100);
