@@ -75,7 +75,7 @@ assert.equal(budgetReveal.type,'expand-budget');assert.ok(budgetReveal.origin.le
 for(const pos of ['left','center','right']){
  await p.evaluate(pos=>{db.settings.tabletDockPosition=pos;persist();renderDock()},pos);
  const plus=await p.locator('#dock .add').boundingBox();await p.locator('#dock .add').click();
- const circle=await p.evaluate(()=>({origin:sheetMotion.origin.toJSON(),frames:sheetMotion.animation.effect.getKeyframes(),easing:sheetMotion.animation.effect.getTiming().easing}));assert.ok(Math.abs(circle.origin.left-plus.x)<1);assert.equal(circle.origin.width,54);assert.ok(circle.frames[0].transform.includes('scale'));assert.equal(await p.locator('.sheet.origin-expand').count(),1);
+ const circle=await p.evaluate(()=>({origin:sheetMotion.origin.toJSON(),frames:sheetMotion.animation.effect.getKeyframes(),easing:sheetMotion.animation.effect.getTiming().easing}));assert.ok(Math.abs(circle.origin.left-plus.x)<1);assert.equal(circle.origin.width,64);assert.ok(circle.frames[0].transform.includes('scale'));assert.equal(await p.locator('.sheet.origin-expand').count(),1);
  if(pos==='left'){
   const samples=await p.evaluate(()=>{const animations=[sheetMotion.animation,sheetMotion.maskAnimation,...sheetMotion.extra];const result=[.1,.35,.6].map(t=>{animations.forEach(a=>{a.pause();a.currentTime=a.effect.getTiming().duration*t});return {glyph:+getComputedStyle(document.querySelector('.plus-morph')).opacity,content:+getComputedStyle(document.querySelector('.detail-inner')).opacity}});animations.forEach(a=>a.play());return result;});
   for(const [i,expected] of [1,.5,0].entries()){assert.ok(Math.abs(samples[i].glyph-expected)<.001);assert.ok(Math.abs(samples[i].content-(1-expected))<.001);}
@@ -106,7 +106,7 @@ await p.waitForFunction(()=>navigationMotion===null);assert.equal((await p.locat
 await p.locator('#dock [data-action=functions]').click();await p.waitForFunction(()=>navigationMotion===null);assert.deepEqual(await p.evaluate(()=>({page,budgetMode,budgetRange})),remembered);assert.equal((await p.locator('#displayArea').boundingBox()).x,256);
 // Selected pill moves beneath the plus; day typography and blank budgets.
 assert.equal(await p.locator('#dock .moving-highlight').count(),1);assert.ok(await p.evaluate(()=>Number(getComputedStyle($('#dock .add')).zIndex)>Number(getComputedStyle($('#dock .moving-highlight')).zIndex)));
-const bar=await p.locator('#dock').boundingBox(),plusRect=await p.locator('#dock .add').boundingBox();assert.ok(plusRect.y<bar.y);assert.equal(plusRect.width,54);
+const bar=await p.locator('#dock').boundingBox(),plusRect=await p.locator('#dock .add').boundingBox();assert.ok(plusRect.y<bar.y);assert.equal(plusRect.width,64);
 await p.evaluate(()=>{db.budgets={};persist();go('home')});await p.waitForFunction(()=>navigationMotion===null);
 const budgetPlaceholder=await p.evaluate(()=>'-'.repeat(String(Math.floor(sum(selectedEntries(db.settings.budgetMode,range),'expense')/100)).length)+'.--');assert.equal(await p.locator('.budget-card .metrics span').nth(1).locator('b').innerText(),budgetPlaceholder);assert.equal(await p.locator('.budget-card .metrics span').nth(2).locator('b').innerText(),budgetPlaceholder);
 assert.ok(await p.evaluate(()=>parseFloat(getComputedStyle($('.day-date')).fontSize)>parseFloat(getComputedStyle($('.day-week')).fontSize)&&parseFloat(getComputedStyle($('.day-week')).fontSize)>parseFloat(getComputedStyle($('.day-relative')).fontSize)));assert.ok((await p.locator('.day-head').first().boundingBox()).height<=38);

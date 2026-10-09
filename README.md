@@ -1,4 +1,4 @@
-# 墨账 · Android 0.1.18-webview
+# 墨账 · Android 0.1.19-webview
 
 这是可安装的离线记账第一版，采用 Java Android Activity + 本地 WebView 界面。界面资产直接随 APK 打包，不连接网站、不申请网络权限。**不是 Jetpack Compose 或鸿蒙原生组件实现**。
 
@@ -16,7 +16,7 @@
 
 ## 安装与运行
 
-安装交付的 `墨账-0.1.18-webview-debug.apk`，支持 Android 8.0 及以上。请使用更新后的 Android System WebView / Chrome（建议 110 及以上），以支持背景模糊、动态视口和无障碍属性。
+安装交付的 `墨账-0.1.19-webview-debug.apk`，支持 Android 8.0 及以上。请使用更新后的 Android System WebView / Chrome（建议 110 及以上），以支持背景模糊、动态视口和无障碍属性。
 
 初次启动可选择“开始记账”或“体验演示”。演示数据有明确标识，设置中可确认清空并切换到空白账本。此操作会清空演示期间写入的全部数据，建议先导出。
 
