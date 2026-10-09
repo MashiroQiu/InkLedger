@@ -11,6 +11,9 @@ import android.os.Looper;
 import android.view.Display;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.WindowInsets;
+import android.graphics.Insets;
+import android.widget.FrameLayout;
 import android.util.AtomicFile;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -34,6 +37,7 @@ public final class MainActivity extends Activity {
     private ValueCallback<Uri[]> chooser;
     private String pendingBackup;
     private float requestedMotionRate;
+    private volatile String systemInsets = "{\"top\":0,\"right\":0,\"bottom\":0,\"left\":0}";
     private final Handler motionHandler = new Handler(Looper.getMainLooper());
     private final Runnable releaseMotionRate = () -> {
         WindowManager.LayoutParams params = getWindow().getAttributes();
@@ -47,10 +51,29 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        configureEdgeToEdge();
         store = new AtomicFile(new File(getFilesDir(), "ledger.json"));
+        if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+            WebView.setWebContentsDebuggingEnabled(true);
         web = new WebView(this);
         web.setBackgroundColor(Color.rgb(222,222,222));
-        setContentView(web);
+        FrameLayout root = new FrameLayout(this);
+        root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(root);
+        root.setOnApplyWindowInsetsListener((view, insets) -> {
+            updateSystemInsets(insets);
+            if (Build.VERSION.SDK_INT >= 30) {
+                int keyboard = insets.isVisible(WindowInsets.Type.ime())
+                        ? insets.getInsets(WindowInsets.Type.ime()).bottom : 0;
+                FrameLayout.LayoutParams layout = (FrameLayout.LayoutParams) web.getLayoutParams();
+                if (layout.bottomMargin != keyboard) {
+                    layout.bottomMargin = keyboard;
+                    web.setLayoutParams(layout);
+                }
+            }
+            return insets;
+        });
+        root.requestApplyInsets();
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -60,6 +83,9 @@ public final class MainActivity extends Activity {
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                if (ORIGIN.equals(url)) publishSystemInsets();
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 return !req.getUrl().toString().startsWith(ORIGIN);
             }
@@ -89,6 +115,49 @@ public final class MainActivity extends Activity {
         });
         web.addJavascriptInterface(new StoreBridge(), "AndroidStore");
         web.loadUrl(ORIGIN);
+    }
+    @SuppressWarnings("deprecation")
+    private void configureEdgeToEdge() {
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= 28) {
+            getWindow().setNavigationBarDividerColor(Color.TRANSPARENT);
+            WindowManager.LayoutParams attributes = getWindow().getAttributes();
+            attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            getWindow().setAttributes(attributes);
+        }
+        if (Build.VERSION.SDK_INT >= 29) {
+            getWindow().setStatusBarContrastEnforced(false);
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
+    }
+    @SuppressWarnings("deprecation")
+    private void updateSystemInsets(WindowInsets insets) {
+        int top, right, bottom, left;
+        if (Build.VERSION.SDK_INT >= 30) {
+            Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+            top = bars.top; right = bars.right; bottom = bars.bottom; left = bars.left;
+        } else {
+            top = insets.getStableInsetTop(); right = insets.getStableInsetRight();
+            bottom = insets.getStableInsetBottom(); left = insets.getStableInsetLeft();
+            if (Build.VERSION.SDK_INT >= 28 && insets.getDisplayCutout() != null) {
+                top = Math.max(top, insets.getDisplayCutout().getSafeInsetTop());
+                right = Math.max(right, insets.getDisplayCutout().getSafeInsetRight());
+                bottom = Math.max(bottom, insets.getDisplayCutout().getSafeInsetBottom());
+                left = Math.max(left, insets.getDisplayCutout().getSafeInsetLeft());
+            }
+        }
+        float density = getResources().getDisplayMetrics().density;
+        String next = "{\"top\":" + top/density + ",\"right\":" + right/density
+                + ",\"bottom\":" + bottom/density + ",\"left\":" + left/density + "}";
+        if (!next.equals(systemInsets)) { systemInsets = next; publishSystemInsets(); }
+    }
+    private void publishSystemInsets() {
+        if (web != null) web.evaluateJavascript("window.applySystemInsets && window.applySystemInsets(" + systemInsets + ")", null);
     }
     private void boostMotionRate() {
         if (requestedMotionRate > 0) return;
@@ -123,6 +192,7 @@ public final class MainActivity extends Activity {
         web.post(this::boostMotionRate);
     }
     public final class StoreBridge {
+        @JavascriptInterface public String readSystemInsets() { return systemInsets; }
         @JavascriptInterface public void requestMotionRate() {
             runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) boostMotionRate(); });
         }
