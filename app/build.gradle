@@ -2,6 +2,6 @@ plugins { id 'com.android.application' }
 android {
     namespace 'cn.inkledger.app'
     compileSdk 35
-    defaultConfig { applicationId 'cn.inkledger.app'; minSdk 26; targetSdk 35; versionCode 16; versionName '0.1.15-webview' }
+    defaultConfig { applicationId 'cn.inkledger.app'; minSdk 26; targetSdk 35; versionCode 17; versionName '0.1.16-webview' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
 }
