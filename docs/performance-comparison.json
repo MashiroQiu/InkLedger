@@ -1,413 +1,207 @@
 {
-
   "status": "PASS",
-
   "environment": "Desktop Chrome, same machine sequential comparison; not Android FPS",
-
   "entries": 8000,
-
   "identicalHTML": true,
-
   "before": {
-
     "homeHTML": {
-
       "medianMs": 109.80000000074506,
-
       "samplesMs": [
-
         107.80000000074506,
-
         109.10000000149012,
-
         109.59999999776483,
-
         109.80000000074506,
-
         110.19999999925494,
-
         112.89999999850988,
-
         115.80000000074506
-
       ]
-
     },
-
     "budgetHTML": {
-
       "medianMs": 88,
-
       "samplesMs": [
-
         87.30000000074506,
-
         87.40000000223517,
-
         87.69999999925494,
-
         88,
-
         88.09999999776483,
-
         88.10000000149012,
-
         88.69999999925494
-
       ]
-
     },
-
     "statsHTML": {
-
       "medianMs": 2.199999999254942,
-
       "samplesMs": [
-
         2.099999997764826,
-
         2.199999999254942,
-
         2.199999999254942,
-
         2.199999999254942,
-
         2.199999999254942,
-
         2.2000000029802322,
-
         2.300000000745058
-
       ]
-
     },
-
     "searchHTML": {
-
       "medianMs": 110,
-
       "samplesMs": [
-
         108.19999999925494,
-
         109.60000000149012,
-
         109.80000000074506,
-
         110,
-
         110.30000000074506,
-
         112.30000000074506,
-
         115.89999999850988
-
       ]
-
     },
-
     "layout": {
-
       "count": 16,
-
       "styleRecalcs": 26,
-
       "durationMs": 27.877
-
     }
-
   },
-
   "after": {
-
     "homeHTML": {
-
       "medianMs": 9.899999998509884,
-
       "samplesMs": [
-
         8.899999998509884,
-
         9.100000001490116,
-
         9.300000000745058,
-
         9.899999998509884,
-
         10,
-
         11.399999998509884,
-
         13.200000002980232
-
       ]
-
     },
-
     "budgetHTML": {
-
       "medianMs": 0.6999999992549419,
-
       "samplesMs": [
-
         0.5,
-
         0.6000000014901161,
-
         0.6000000014901161,
-
         0.6999999992549419,
-
         0.6999999992549419,
-
         0.6999999992549419,
-
         0.6999999992549419
-
       ]
-
     },
-
     "statsHTML": {
-
       "medianMs": 0.19999999925494194,
-
       "samplesMs": [
-
         0.19999999925494194,
-
         0.19999999925494194,
-
         0.19999999925494194,
-
         0.19999999925494194,
-
         0.19999999925494194,
-
         0.20000000298023224,
-
         0.20000000298023224
-
       ]
-
     },
-
     "searchHTML": {
-
       "medianMs": 11.300000000745058,
-
       "samplesMs": [
-
         11.099999997764826,
-
         11.199999999254942,
-
         11.300000000745058,
-
         11.300000000745058,
-
         11.400000002235174,
-
         11.600000001490116,
-
         11.699999999254942
-
       ]
-
     },
-
     "layout": {
-
       "count": 16,
-
       "styleRecalcs": 24,
-
       "durationMs": 27.085
-
     }
-
   },
-
   "homeHTMLReductionPercent": 91,
-
   "budgetHTMLReductionPercent": 99.2,
-
   "statsHTMLReductionPercent": 90.9,
-
   "searchHTMLReductionPercent": 89.7,
-
   "visualComparison": {
-
     "results": [
-
       {
-
         "frame": "before-budget-expand-0.2.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-budget-expand-0.65.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-editor-0.2.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-editor-0.65.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-horizontal-0.2.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-horizontal-0.65.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-phone-budget.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-phone-home.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-sidebar-0.2.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-sidebar-0.65.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-tablet-budget.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-tablet-home.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       },
-
       {
-
         "frame": "before-tablet-settings.png",
-
         "changedChannels": 0,
-
         "maxDelta": 0
-
       }
-
     ]
-
   },
-
   "particleComparison": {
-
     "status": "PASS",
-
     "results": [
-
       {
-
         "fraction": 0.15,
-
         "identical": true
-
       },
-
       {
-
         "fraction": 0.45,
-
         "identical": true
-
       },
-
       {
-
         "fraction": 0.85,
-
         "identical": true
-
       }
-
     ]
-
   },
-
   "releaseVersion": "0.1.12"
-
 }

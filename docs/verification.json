@@ -1,149 +1,75 @@
 {
-
   "status": "PASS",
-
   "checks": [
-
     "新增账单与分单位精度",
-
     "重载持久化",
-
     "编辑金额",
-
     "快速修改分类",
-
     "删除移入回收站与恢复",
-
     "合计和分类预算独立保存",
-
     "月度点线与年度折线",
-
     "三档视效切换",
-
     "金额输入校验",
-
     "手机平板自动布局",
-
     "平板详情遮罩避开侧栏",
-
     "固定底栏宽度",
-
     "备份结构校验",
-
     "单笔左滑单击移入回收站，无确认",
-
     "整日单击移入回收站，无确认与粒子完成",
-
     "滚动后背景过渡",
-
     "平板底栏三档位置与按钮顺序",
-
     "底栏位置保存与重启恢复",
-
     "手机居中与平板偏好恢复",
-
     "侧栏收起后底栏定位",
-
     "旧备份兼容与无效位置拒绝",
-
     "长按菜单单击删除与永久删除确认",
-
     "菜单方向、跨项距离与速度",
-
     "快速连续导航清理",
-
     "减少动态效果模式",
-
     "移除文学性界面文案",
-
     "预算卡片矩形展开",
-
     "三档位置记账圆形展开",
-
     "长按位置菜单与编辑",
-
     "跨日多选与批量分类",
-
     "多选删除与回收站恢复",
-
     "全选取消与搜索筛选范围",
-
     "展开动画减少动态效果兼容",
-
     "预算展开模糊与减速曲线",
-
     "设置横向全屏与功能页原状态恢复",
-
     "移除侧栏设置入口",
-
     "选中框移动与加号层级及突出",
-
     "预算空状态与位数占位",
-
     "日期行高度与字号层级",
-
     "二级弹层从底边外进入",
-
     "真正连续高斯模糊，中途半径采样",
-
     "旧页DOM与导航控件复用、连续导航清理",
-
     "高刷新率桥接请求节流",
-
     "设置返回不叠加侧栏宽度动画"
-
   ],
-
   "browser": "155.0.8059.39",
-
   "screenshots": "Chrome 运行本地界面截图；不是 Android 模拟器截图",
-
   "viewport": {
-
     "phone": "432×960 (20:9)",
-
     "tablet": "1440×960 (3:2)"
-
   },
-
   "errors": [],
-
   "androidBuild": {
-
     "version": "0.1.13",
-
     "versionCode": 14,
-
     "signature": "v2/v3 verified",
-
     "sha256": "91022b08d29dd4955ca0bf598e18e6792103423c0972d10dc0561ee74b4173a9"
-
   },
-
   "motionOptimizationChecks": {
-
     "status": "PASS",
-
     "samePanelSeparatePropertyChannels": true,
-
     "realGaussianPreserved": true,
-
     "retainedOutgoingViewport": true,
-
     "delegatedScrollAndEdgeHandlers": true,
-
     "syntheticStallBeforePositions": 1,
-
     "syntheticStallAfterPositions": 13,
-
     "pixelIdenticalNonEditorFrames": 11,
-
     "editorComputedStyleMatches": true,
-
     "editorRasterDifference": "small edge sampling differences after compositor change",
-
     "actualAndroidFps": "not measured"
-
   }
-
 }

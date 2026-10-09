@@ -1,24 +1,12 @@
 {
-
   "name": "inkledger-ui-verification",
-
   "version": "0.1.13",
-
   "private": true,
-
   "scripts": {
-
     "test": "node tools/verify.cjs"
-
   },
-
   "devDependencies": {
-
     "playwright": "1.62.1",
-
     "pngjs": "7.0.0"
-
   }
-
 }
-

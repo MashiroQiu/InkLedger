@@ -1,16 +1,8 @@
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path'),assert=require('assert');
-
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROME_PATH||undefined,headless:true});const p=await b.newPage({viewport:{width:1440,height:960},deviceScaleFactor:2});await p.route('https://inkledger.local/**',r=>{const f=new URL(r.request().url()).pathname.slice(1)||'index.html';return r.fulfill({body:fs.readFileSync(path.resolve(__dirname,'../app/src/main/assets',f)),contentType:f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'text/html'})});await p.goto('https://inkledger.local/?demo=1');
-
 await p.locator('#dock [data-action=functions]').dispatchEvent('pointerdown');assert.equal(await p.locator('#pageSurface').evaluate(e=>e.style.willChange),'');
-
 await p.locator('#dock [data-action=settings]').dispatchEvent('pointerdown');assert.ok((await p.locator('#pageSurface').evaluate(e=>e.style.willChange)).includes('filter'));await p.locator('#dock [data-action=settings]').click();await p.waitForFunction(()=>navigationMotion===null);assert.equal(await p.locator('#pageSurface').evaluate(e=>e.style.willChange),'');
-
 await p.locator('#dock [data-action=functions]').click();await p.waitForFunction(()=>navigationMotion===null);assert.equal((await p.locator('#displayArea').boundingBox()).x,256);
-
 await p.evaluate(()=>{const template=db.entries[0];for(let i=0;i<500;i++)db.entries.push({...template,id:uid(),note:'性能检查 '+i});render();});
-
 assert.equal(await p.locator('#content [data-swipe-id]').count(),await p.evaluate(()=>db.entries.length));await p.locator('#dock [data-action=settings]').click();await p.waitForFunction(()=>navigationMotion===null);await p.locator('#dock [data-action=functions]').click();await p.waitForFunction(()=>navigationMotion===null);assert.equal((await p.locator('#displayArea').boundingBox()).x,256);assert.equal(await p.locator('.surface-snapshot,.page-outgoing').count(),0);console.log('PASS: warmup cleanup, fixed viewport width, 500-entry horizontal navigation');
-
 await b.close();})().catch(e=>{console.error(e);process.exit(1)});
-
