@@ -97,7 +97,9 @@ body.settings-open #sidebar{transform:translateX(-100%);transition:none}
  #dock[data-position="left"]{left:calc(var(--content-inset) + max(20px,env(safe-area-inset-left)))}
 }
 
-/* Home budget: physical press, with an unblurred expansion over a darkened page. */
+/* Home budget: physical press, with a clear rounded expansion over a darkened, blurred page. */
 .budget-card[data-action="budget"]{transform-origin:center;transition:transform .14s var(--motion-easing)}
 .budget-card[data-action="budget"]:active{transform:translateY(2px) scale(.975)}
 .budget-expand-shade{position:absolute;inset:0;z-index:5;background:#000;opacity:0;pointer-events:none}
+
+#pageSurface.budget-reveal-rounded{border-radius:18px;overflow:hidden}
