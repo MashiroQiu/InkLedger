@@ -102,4 +102,6 @@ body.settings-open #sidebar{transform:translateX(-100%);transition:none}
 .budget-card[data-action="budget"]:active{transform:translateY(2px) scale(.975)}
 .budget-expand-shade{position:absolute;inset:0;z-index:5;background:#000;opacity:0;pointer-events:none}
 
-#pageSurface.budget-reveal-rounded{border-radius:18px;overflow:hidden}
+/* Manual tablet sidebar and functional viewport share one duration/easing. */
+body.sidebar-resizing #sidebar{transition:transform .3s var(--motion-easing)}
+body.sidebar-resizing #displayArea,body.sidebar-resizing #dock{transition:left .3s var(--motion-easing)}
